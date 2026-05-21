@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HEMS Availability & Unit Disposition Aid — Baptist Health EMS Corbin</title>
+<style>
+  :root{
+    --bg:#0e1419;--panel:#172029;--panel-2:#1f2b35;--line:#2c3a47;
+    --ink:#eef3f7;--ink-dim:#9fb0bd;
+    --commit:#c0392b;--commit-bg:#3a1410;
+    --hold:#c98a12;--hold-bg:#332608;
+    --release:#1e8e4e;--release-bg:#10301d;
+    --accent:#3aa0d6;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:Georgia,"Times New Roman",serif;line-height:1.5;-webkit-text-size-adjust:100%;}
+  .wrap{max-width:780px;margin:0 auto;padding:18px 16px 64px;}
+  header{border-bottom:2px solid var(--line);padding-bottom:14px;margin-bottom:18px;}
+  .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:0 0 6px;}
+  h1{font-size:24px;line-height:1.2;margin:0 0 6px;font-weight:700;}
+  .sub{color:var(--ink-dim);font-size:14px;margin:0;}
+  h2{font-size:13px;font-family:var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-dim);border-bottom:1px solid var(--line);padding-bottom:7px;margin:30px 0 14px;font-weight:400;}
+
+  .frame{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:13px 15px;margin-bottom:8px;font-size:13.5px;color:var(--ink-dim);}
+  .frame strong{color:var(--ink);}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px;}
+  .q{font-size:16px;margin:0 0 4px;font-weight:700;}
+  .step{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 10px;}
+  .qsub{font-weight:400;color:var(--ink-dim);font-size:13px;margin:0 0 12px;}
+  .opts{display:flex;flex-direction:column;gap:9px;}
+  .opt{display:block;width:100%;text-align:left;background:var(--panel-2);border:1.5px solid var(--line);color:var(--ink);border-radius:8px;padding:14px 15px;font-size:15px;font-family:Georgia,serif;cursor:pointer;transition:border-color .12s;}
+  .opt:hover{border-color:var(--accent);}
+  .opt:active{transform:translateY(1px);}
+  .opt .tag{font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--ink-dim);display:block;margin-top:3px;}
+
+  .result{border-radius:10px;padding:18px;margin-top:6px;}
+  .result h3{margin:0 0 4px;font-size:13px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;}
+  .verdict{font-size:23px;font-weight:700;margin:0 0 12px;line-height:1.15;}
+  .result p{margin:0 0 8px;font-size:14.5px;}
+  .result.commit{background:var(--commit-bg);border:1.5px solid var(--commit);}
+  .result.commit h3,.result.commit .verdict{color:#f3b4ad;}
+  .result.hold{background:var(--hold-bg);border:1.5px solid var(--hold);}
+  .result.hold h3,.result.hold .verdict{color:#f0c668;}
+  .result.release{background:var(--release-bg);border:1.5px solid var(--release);}
+  .result.release h3,.result.release .verdict{color:#7fe0a3;}
+  .conf{font-family:var(--mono);font-size:12px;color:var(--ink-dim);margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.12);}
+
+  /* Live station dashboard */
+  .live-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+  .live-head .upd{font-family:var(--mono);font-size:11px;color:var(--ink-dim);}
+  .refresh{background:transparent;border:1px solid var(--line);color:var(--ink-dim);font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:6px 11px;border-radius:6px;cursor:pointer;}
+  .refresh:hover{border-color:var(--accent);color:var(--ink);}
+  .stations{display:grid;gap:10px;}
+  .st{border:1px solid var(--line);border-left-width:5px;border-radius:9px;padding:12px 14px;background:var(--panel);}
+  .st.vfr{border-left-color:#1e8e4e;}
+  .st.mvfr{border-left-color:#3aa0d6;}
+  .st.ifr{border-left-color:#c0392b;}
+  .st.lifr{border-left-color:#b15ad6;}
+  .st.unk{border-left-color:var(--line);}
+  .st-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:5px;}
+  .st-name{font-weight:700;font-size:15px;}
+  .st-name .id{font-family:var(--mono);font-size:12px;color:var(--accent);margin-left:6px;}
+  .cat{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.05em;padding:3px 9px;border-radius:5px;white-space:nowrap;}
+  .cat.vfr{background:#10301d;color:#7fe0a3;}
+  .cat.mvfr{background:#0e2733;color:#8fd0f0;}
+  .cat.ifr{background:#3a1410;color:#f3b4ad;}
+  .cat.lifr{background:#2c133a;color:#d9a7f0;}
+  .cat.unk{background:var(--panel-2);color:var(--ink-dim);}
+  .st-cvw{font-family:var(--mono);font-size:13px;color:var(--ink);margin-bottom:5px;}
+  .st-cvw .flag{color:#f0c668;}
+  .st-raw{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);word-break:break-word;line-height:1.45;}
+  .st-loading{font-family:var(--mono);font-size:12px;color:var(--ink-dim);padding:8px 0;}
+  .live-fallback{font-size:13px;color:var(--ink-dim);background:var(--hold-bg);border:1px solid var(--hold);border-radius:8px;padding:11px 14px;margin-top:4px;}
+  .live-fallback a{color:#f0c668;}
+
+  .restart{margin-top:10px;background:transparent;border:1px solid var(--line);color:var(--ink-dim);font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:9px 14px;border-radius:7px;cursor:pointer;}
+  .restart:hover{border-color:var(--accent);color:var(--ink);}
+
+
+  table{width:100%;border-collapse:collapse;font-size:14px;}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-dim);font-weight:400;}
+  td.num{font-family:var(--mono);white-space:nowrap;}
+  caption{text-align:left;color:var(--ink-dim);font-size:12.5px;margin-bottom:8px;font-style:italic;}
+
+  .links{display:grid;gap:10px;}
+  .lk{display:block;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:13px 15px;text-decoration:none;color:var(--ink);transition:border-color .12s;}
+  .lk:hover{border-color:var(--accent);}
+  .lk .name{font-weight:700;font-size:15px;display:flex;justify-content:space-between;gap:8px;}
+  .lk .id{font-family:var(--mono);font-size:12px;color:var(--accent);}
+  .lk .desc{color:var(--ink-dim);font-size:13px;margin-top:3px;}
+
+  .note{font-size:13px;color:var(--ink-dim);background:var(--panel);border-left:3px solid var(--accent);padding:11px 14px;border-radius:0 7px 7px 0;margin:12px 0;}
+  .reg{font-family:var(--mono);font-size:12px;color:var(--accent);}
+  footer{margin-top:36px;border-top:1px solid var(--line);padding-top:16px;color:var(--ink-dim);font-size:12px;}
+  a{color:var(--accent);}
+  code{font-family:var(--mono);font-size:12.5px;background:var(--panel-2);padding:1px 5px;border-radius:4px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <p class="kicker">Baptist Health EMS · Corbin Market</p>
+  <h1>HEMS Availability &amp; Unit Disposition Aid</h1>
+  <p class="sub">Predicts how likely an air medical aircraft is to be available — factoring thunderstorms, icing, ceiling, visibility, and flight category — and translates that into what to do with your ground unit: commit it to transport, hold it on standby, or clear it to release for other tasks.</p>
+</header>
+
+<div class="frame">
+  <strong>What this is for:</strong> when weather makes a flight unlikely, you have to provide ground transport — so there's no reason to tie up the unit waiting. When weather is favorable, you may be able to free that unit for other calls. This aid reads <strong>weather</strong> (thunderstorms, icing, ceiling, visibility, flight category) into a fast <strong>availability-confidence read</strong> to support that decision. It does <strong>not</strong> account for aircraft status — whether the bird is already flying, down for maintenance, or the crew is timed out — so always reconfirm real-time availability with dispatch/OCC. <strong>It does not make the flight decision</strong> either; the pilot-in-command and operations control center own that. Treat a "release" call as your read, not a guarantee.
+</div>
+
+<h2>Current Conditions — Live</h2>
+<div class="live-head">
+  <span class="upd" id="liveUpd">Loading current observations…</span>
+  <button class="refresh" id="liveRefresh">↻ Refresh</button>
+</div>
+<div class="stations" id="stations"></div>
+<p class="sub" style="margin-top:8px;font-size:12.5px;">Color = FAA flight category (green VFR · blue MVFR · red IFR · purple LIFR). This is a fast read of ceiling/visibility only — it does <strong>not</strong> show thunderstorms or icing, so still run the screen below. Pulled live from aviationweather.gov.</p>
+
+<h2>Availability Screen</h2>
+<div id="tool"></div>
+
+<h2>Icing — Quick Reference</h2>
+<p class="sub" style="margin-bottom:10px;">Icing is not in a routine METAR. Most HEMS helicopters in this market are <strong>not certified for flight into known icing</strong>, so forecast or reported icing in the layer the aircraft must climb/descend through is a knockout — even under a clear surface picture. The practical trigger is the <strong>freezing level</strong>: if it's at or below the altitudes the aircraft would use and there's visible moisture (clouds/precip), assume a likely decline.</p>
+<div class="card">
+<table>
+  <caption>Where icing shows up — products to check</caption>
+  <thead><tr><th>Product</th><th>What it tells you</th></tr></thead>
+  <tbody>
+    <tr><td>AIRMET Zulu</td><td>Forecast moderate icing + freezing levels over a wide area. A broad advisory, not a guarantee — but a flag to check closer.</td></tr>
+    <tr><td>SIGMET (icing)</td><td>Severe icing. Treat as a hard no-go for non-FIKI aircraft.</td></tr>
+    <tr><td>PIREP</td><td>Actual pilot reports of ice (e.g. "ICG 060" = icing at 6,000 ft). The most concrete signal.</td></tr>
+    <tr><td>Forecast Icing (FIP) chart</td><td>Graphical icing probability/severity by altitude on aviationweather.gov.</td></tr>
+    <tr><td>Freezing level</td><td>Listed in AIRMET Zulu and on the GFA. The lower it is, the smaller the ice-free operating window.</td></tr>
+  </tbody>
+</table>
+</div>
+<p class="note"><strong>Rule of thumb for the screen:</strong> freezing level near the surface + clouds, or any icing SIGMET → treat as <em>Low availability, commit ground</em>. AIRMET Zulu with a high freezing level and otherwise clear skies → <em>Uncertain, hold and let the program decide</em>. When unsure, the flight program's pilot makes the icing call against their aircraft's certification — your job is to recognize the likely decline early.</p>
+
+<h2>FAA Flight Category — Quick Cross-Check</h2>
+<p class="sub" style="margin-bottom:10px;">Aviationweather.gov and most apps color-code each station by flight category, set by whichever is worse — ceiling <em>or</em> visibility. It's a fast sanity check that lines up with the screen above: <strong>IFR/LIFR ≈ below HAA VFR minimums</strong> (commit ground), <strong>MVFR ≈ marginal</strong> (hold), <strong>VFR ≈ likely available</strong> (may release).</p>
+<div class="card">
+<table>
+  <caption>Aviation Flight Categories — per aviationweather.gov (worse of ceiling or visibility governs)</caption>
+  <thead><tr><th>Category</th><th>Ceiling</th><th>Visibility</th><th>Unit read</th></tr></thead>
+  <tbody>
+    <tr><td>VFR (green)</td><td class="num">&gt; 3,000 ft</td><td class="num">&gt; 5 SM</td><td>Likely available — may release</td></tr>
+    <tr><td>MVFR (blue)</td><td class="num">1,000–3,000 ft</td><td class="num">3–5 SM</td><td>Marginal — hold standby</td></tr>
+    <tr><td>IFR (red)</td><td class="num">500–&lt;1,000 ft</td><td class="num">1–&lt;3 SM</td><td>Unlikely — commit ground</td></tr>
+    <tr><td>LIFR (magenta)</td><td class="num">&lt; 500 ft</td><td class="num">&lt; 1 SM</td><td>Unlikely — commit ground</td></tr>
+  </tbody>
+</table>
+</div>
+<p class="note"><strong>Caveat:</strong> flight category is a general aviation classification, not the HAA rule. A station can read MVFR yet still be below a specific program's company minimums, and the category says nothing about thunderstorms — so a VFR-category field with VCTS is still a no-go. Use category as a fast cross-check, not a replacement for the screen and the convective gate.</p>
+
+<h2>FAA Weather Minimums — Reference</h2>
+<p class="note">HEMS ops fall under <span class="reg">14 CFR Part 135, Subpart L</span>. These are the regulatory floor; programs often fly to higher company minimums in their OpSpecs, so a flight can be declined even when these are met. The Corbin area is largely Class G uncontrolled airspace, so § 135.609 governs most local launches.</p>
+<div class="card">
+<table>
+  <caption>VFR Class G minimums for HAA operations — 14 CFR § 135.609</caption>
+  <thead><tr><th>Condition</th><th>Ceiling</th><th>Visibility</th></tr></thead>
+  <tbody>
+    <tr><td>Day — local flying area</td><td class="num">800 ft</td><td class="num">2 SM</td></tr>
+    <tr><td>Day — non-local</td><td class="num">800 ft</td><td class="num">3 SM</td></tr>
+    <tr><td>Night — local flying area</td><td class="num">1,000 ft</td><td class="num">3 SM</td></tr>
+    <tr><td>Night — non-local</td><td class="num">1,000 ft</td><td class="num">5 SM</td></tr>
+    <tr><td>Night w/ NVG or HTAWS — local</td><td class="num">800 ft</td><td class="num">3 SM</td></tr>
+    <tr><td>Night w/ NVG or HTAWS — non-local</td><td class="num">1,000 ft</td><td class="num">3 SM</td></tr>
+  </tbody>
+</table>
+</div>
+<p class="note"><strong>On the 800 ft figure:</strong> an IFR approach to a hospital pad (typically a <span class="reg">Point-in-Space / PinS</span> approach) brings the aircraft to a published minimum descent altitude, after which the pilot needs the required flight visibility to proceed VFR to the pad. The exact decision altitude/visibility come from the <em>published plate</em> for the Baptist Health Corbin pad — confirm with your HEMS provider rather than relying on a memorized number. Per <span class="reg">§ 135.613</span>, on a "Proceed VFR" segment of 1 NM or less, flight visibility must be ≥ 1 SM and the chart ceiling applies.</p>
+
+<h2>Confirm Current Weather &amp; Trend</h2>
+<p class="sub" style="margin-bottom:14px;">Check <strong>ceiling</strong> (lowest BKN/OVC, ft AGL) and <strong>visibility</strong> (SM) against the table. The <strong>TAF</strong> tells you if a marginal window is opening or closing — that drives whether you can release a unit for the next few hours.</p>
+<div class="links">
+  <a class="lk" href="https://aviationweather.gov/data/metar/?ids=KLOZ&hours=0&taf=true" target="_blank" rel="noopener">
+    <span class="name">London-Corbin / Magee <span class="id">KLOZ</span></span>
+    <span class="desc">Closest field to Corbin (~12 mi N). METAR + TAF. Primary reference.</span></a>
+  <a class="lk" href="https://aviationweather.gov/data/metar/?ids=KSME&hours=0&taf=true" target="_blank" rel="noopener">
+    <span class="name">Lake Cumberland Regional, Somerset <span class="id">KSME</span></span>
+    <span class="desc">~26 NM NW. METAR; watch for weather moving in from the northwest.</span></a>
+  <a class="lk" href="https://aviationweather.gov/data/metar/?ids=KBYL&hours=0&taf=true" target="_blank" rel="noopener">
+    <span class="name">Williamsburg–Whitley County <span class="id">KBYL</span></span>
+    <span class="desc">~18 NM S, Whitley County. Nearest station toward the TN line.</span></a>
+</div>
+<div class="note" style="margin-top:14px;"><strong>All three at once:</strong>
+  <a href="https://aviationweather.gov/data/metar/?ids=KLOZ,KSME,KBYL&hours=0&taf=true" target="_blank" rel="noopener">Open KLOZ + KSME + KBYL →</a><br>
+  Also: <a href="https://aviationweather.gov/gfa/" target="_blank" rel="noopener">Graphical Forecast (ceiling/vis maps)</a> ·
+  <a href="https://aviationweather.gov/?center=37.09,-84.08&zoom=8&layers=flightcat,radar" target="_blank" rel="noopener">Flight-category + radar map (Corbin area)</a> ·
+  <a href="https://radar.weather.gov/station/kjkl/standard" target="_blank" rel="noopener">NWS Jackson radar (KJKL)</a><br>
+  Icing &amp; advisories: <a href="https://aviationweather.gov/airmet/" target="_blank" rel="noopener">AIRMET / SIGMET</a> ·
+  <a href="https://aviationweather.gov/gfa/#ice" target="_blank" rel="noopener">Forecast Icing (FIP) chart</a> ·
+  <a href="https://aviationweather.gov/pirep/" target="_blank" rel="noopener">PIREPs (pilot ice reports)</a></div>
+<div class="note"><strong>Tip — decode the raw code:</strong> on any aviationweather.gov METAR page, use the <strong>"Decoded"</strong> toggle (vs. "Raw") to flip the raw string like <code>OVC007 1 1/2SM</code> into plain English — ceiling, visibility, wind, and weather spelled out. Handy if you're not used to reading raw METARs under pressure. The live cards above already decode ceiling, visibility, and category for you.</div>
+<div class="note"><strong>Reading a METAR fast:</strong> ceiling = lowest <code>BKN</code>/<code>OVC</code> layer (<code>OVC007</code> = 700 ft AGL); <code>FEW</code>/<code>SCT</code> are not ceilings. Visibility = number before <code>SM</code>. Convection: <code>TS</code> = thunderstorm at the field (within 5 SM), <code>VCTS</code> = vicinity (5–10 SM), <code>LTG DSNT NE</code> in remarks = distant lightning to the NE (10–30 NM), <code>TS MOV NE</code> = storm moving northeast. So <code>OVC005 3/4SM +TSRA</code> = 500 ft, 3/4 mile, heavy thunderstorm rain — a clear no-go on multiple counts.</div>
+
+<footer>
+  <p>Internal resource-disposition aid for Baptist Health EMS — Corbin Market. Regulatory values per 14 CFR Part 135 Subpart L and § 135.205. Identifiers verified: London-Corbin (KLOZ), Lake Cumberland Regional/Somerset (KSME), Williamsburg–Whitley County (KBYL). <strong>This tool does not authorize or deny a flight</strong> — the air medical PIC and OCC make that decision under their FAA-approved § 135.617 risk analysis. Reconfirm aircraft status with dispatch/OCC before releasing or committing a unit. Verify the Baptist Health Corbin pad's published approach minimums with your HEMS provider.</p>
+</footer>
+
+</div>
+
+<script>
+const nodes = {
+  start:{
+    step:"Step 1 of 5 · Convective activity",
+    q:"Any thunderstorm or lightning at the nearest station?",
+    sub:"Check present-weather and remarks: TS = at the field (within 5 SM), VCTS = vicinity (5–10 SM), LTG DSNT = distant lightning (10–30 NM). Convective activity is an independent knockout — programs will not launch into or hold near storms regardless of ceiling/vis.",
+    opts:[
+      {label:"TS or VCTS — storm at or within ~10 SM",tag:"At/near the pad or route",result:"storm_near"},
+      {label:"LTG DSNT — distant lightning only",tag:"10–30 NM, may be moving in",result:"storm_dsnt"},
+      {label:"None — no TS, VCTS, or lightning",tag:"Clear of convection",next:"ice"}
+    ]},
+  ice:{
+    step:"Step 2 of 5 · Icing",
+    q:"Is icing forecast or reported in the area?",
+    sub:"Most HEMS aircraft here are not certified for flight into known icing. Check AIRMET Zulu, SIGMETs, PIREPs, and the freezing level (see Icing reference below). The concern is the layer the aircraft must climb or descend through — typically at or above ~1,000 ft AGL — not just the surface temperature.",
+    opts:[
+      {label:"Icing SIGMET, or moderate+ icing with freezing level near the surface",tag:"Structural icing in the operating layer",result:"ice_yes"},
+      {label:"AIRMET Zulu present, freezing level above operating altitude",tag:"Depends on the cloud layer",result:"ice_marg"},
+      {label:"No icing forecast / freezing level high / no clouds to climb through",tag:"Clear of icing",next:"time"}
+    ]},
+  time:{
+    step:"Step 3 of 5 · Time",
+    q:"Is it day or night?",
+    sub:"Night raises the minimums, so marginal weather knocks out a flight sooner.",
+    opts:[
+      {label:"Daytime",tag:"Civil daylight",next:"day_cig"},
+      {label:"Night",tag:"Sunset to sunrise",next:"night_cig"}
+    ]},
+  day_cig:{
+    step:"Step 4 of 5 · Ceiling",
+    q:"Ceiling at the nearest station?",
+    sub:"Lowest BKN/OVC layer, ft AGL.",
+    opts:[
+      {label:"At or above 1,000 ft",tag:"Comfortably above floor",next:"day_vis_hi"},
+      {label:"800–999 ft",tag:"At the day floor",next:"day_vis_mid"},
+      {label:"Below 800 ft",tag:"Under VFR Class G floor",result:"low_cig"}
+    ]},
+  day_vis_hi:{
+    step:"Step 5 of 5 · Visibility",
+    q:"Visibility?",
+    sub:"Number before SM.",
+    opts:[
+      {label:"3 SM or more",tag:"Above day minimums",result:"high"},
+      {label:"2 to under 3 SM",tag:"Local-area only",result:"marg"},
+      {label:"Under 2 SM",tag:"Below day minimum",result:"low_vis"}
+    ]},
+  day_vis_mid:{
+    step:"Step 5 of 5 · Visibility",
+    q:"Visibility?",
+    sub:"At an 800 ft ceiling, visibility decides it.",
+    opts:[
+      {label:"3 SM or more",tag:"Meets day local min",result:"marg"},
+      {label:"2 to under 3 SM",tag:"Right at the edge",result:"marg"},
+      {label:"Under 2 SM",tag:"Below minimum",result:"low_vis"}
+    ]},
+  night_cig:{
+    step:"Step 4 of 5 · Ceiling",
+    q:"Ceiling at the nearest station?",
+    sub:"Night needs a higher ceiling than day.",
+    opts:[
+      {label:"At or above 1,000 ft",tag:"Meets night floor",next:"night_vis"},
+      {label:"800–999 ft",tag:"NVG/HTAWS aircraft only",next:"night_vis_nvg"},
+      {label:"Below 800 ft",tag:"Under all night floors",result:"low_cig"}
+    ]},
+  night_vis:{
+    step:"Step 5 of 5 · Visibility",
+    q:"Visibility?",
+    sub:"Night non-local can need up to 5 SM.",
+    opts:[
+      {label:"5 SM or more",tag:"Meets night non-local",result:"high_night"},
+      {label:"3 to under 5 SM",tag:"Local / NVG-HTAWS only",result:"marg_night"},
+      {label:"Under 3 SM",tag:"Below night minimum",result:"low_vis"}
+    ]},
+  night_vis_nvg:{
+    step:"Step 5 of 5 · Visibility",
+    q:"Visibility?",
+    sub:"800–999 ft at night works only for NVG/HTAWS aircraft.",
+    opts:[
+      {label:"3 SM or more",tag:"NVG/HTAWS only",result:"marg_night"},
+      {label:"Under 3 SM",tag:"Below minimum",result:"low_vis"}
+    ]}
+};
+
+const results = {
+  storm_near:{cls:"commit",conf:"Low availability — convective",verdict:"Aircraft unlikely — commit your unit to ground transport",
+    body:["A thunderstorm at the field (TS) or in the vicinity (VCTS, 5–10 SM) is an independent knockout. HEMS programs will not launch into, or hold near, active convection — lightning, hail, microbursts, and shear make it unsafe regardless of how good the ceiling and visibility otherwise look.",
+          "Commit to ground transport now. Don't run the ceiling/visibility steps as if they could override this — convection trumps them. You can still notify the program, but plan the truck without delay."]},
+  storm_dsnt:{cls:"hold",conf:"Uncertain — convective trend",verdict:"Storms nearby — hold your unit and check the trend",
+    cont:"ice",
+    body:["Distant lightning (LTG DSNT, 10–30 NM) means convection is in the area but not yet at the pad or likely route. A flight may still be possible right now, but conditions can deteriorate fast if the cell is moving toward you.",
+          "Hold your unit on standby and check the TS movement (e.g. 'TS MOV NE' in remarks) and radar. If the cell is tracking toward Corbin or your route, lean toward committing ground now before a late decline. If it's moving away, continue the weather check below."]},
+  ice_yes:{cls:"commit",conf:"Low availability — icing",verdict:"Aircraft unlikely — commit your unit to ground transport",
+    body:["A SIGMET for severe icing, or moderate-or-greater icing with the freezing level near the surface, is a knockout for the non-FIKI helicopters typical of this market. The aircraft would have to climb or descend through the icing layer to reach you or fly the approach, and it can't legally or safely do that.",
+          "Commit to ground transport now. Icing won't show in the surface ceiling/visibility, so don't let a clear-looking METAR talk you out of it — confirm the freezing level and AIRMET Zulu / SIGMET and plan the truck."]},
+  ice_marg:{cls:"hold",conf:"Uncertain — icing aloft",verdict:"Icing possible — hold your unit and confirm with the program",
+    cont:"time",
+    body:["An AIRMET Zulu is a 'time-smeared' advisory over a large area and doesn't by itself mean the aircraft can't fly — it depends on the freezing level, whether there's visible moisture in the operating layer, and the specific aircraft. But it's a real possibility of decline.",
+          "Hold your unit and let the flight program assess the freezing level and any PIREPs against their aircraft's icing certification. If the freezing level is well above the altitudes they'd use and skies are otherwise clear, continue the weather check below; if in doubt, stage ground transport."]},
+  high:{cls:"release",conf:"High availability",verdict:"Aircraft likely available — clear to release/reassign your unit",
+    body:["Weather is at or above day VFR HAA minimums, so weather is not the limiting factor. Assuming an aircraft is in service and in range, a flight is the probable transport.",
+          "You can reasonably free your ground unit for other tasks — but reconfirm aircraft status and ETA with dispatch/OCC before you do, and keep a fallback ground plan if the patient is time-critical."]},
+  high_night:{cls:"release",conf:"High availability (night)",verdict:"Aircraft likely available — clear to release/reassign your unit",
+    body:["Ceiling and visibility meet night non-local minimums. With an aircraft in service and in range, a flight is the probable transport.",
+          "Reasonable to free your unit, but reconfirm status with dispatch/OCC first and hold a ground fallback for critical patients."]},
+  marg:{cls:"hold",conf:"Uncertain availability",verdict:"Marginal — hold your unit on standby",
+    body:["Conditions are right around the day floor (≈800 ft / 2–3 SM). A flight is regulatorily possible but many programs hold higher company minimums, so a decline is realistic and could come late.",
+          "Do not release your unit yet. Request the aircraft if clinically indicated but stage the truck for transport in parallel. Check the TAF — if it's trending down, lean toward committing ground now."]},
+  marg_night:{cls:"hold",conf:"Uncertain availability (night)",verdict:"Marginal — hold your unit on standby",
+    body:["These conditions only work for NVG/HTAWS-equipped aircraft and/or local-area ops. Whether a flight happens depends on the specific aircraft sent — a late decline is realistic.",
+          "Keep your unit staged for transport. Confirm with OCC what aircraft is responding and its capability before releasing anything."]},
+  low_cig:{cls:"commit",conf:"Low availability",verdict:"Aircraft unlikely — commit your unit to ground transport",
+    body:["A ceiling below 800 ft is under the VFR Class G floor day or night. A VFR launch isn't permissible, and an IFR approach to the pad still requires the published minimums and visibility to proceed VFR.",
+          "Commit to ground now — don't hold the unit waiting on a bird that almost certainly can't come. You can still notify the program, but plan the truck transport without delay."]},
+  low_vis:{cls:"commit",conf:"Low availability",verdict:"Aircraft unlikely — commit your unit to ground transport",
+    body:["Reported visibility is below the applicable HAA minimum. A flight is very unlikely to be accepted.",
+          "Commit your unit to ground transport and proceed. Notify the program if you wish, but don't hold the truck."]}
+};
+
+let history=[];
+function render(id){
+  const t=document.getElementById('tool'),n=nodes[id];
+  let h='<div class="card"><p class="step">'+n.step+'</p><p class="q">'+n.q+'</p>';
+  if(n.sub)h+='<p class="qsub">'+n.sub+'</p>';
+  h+='<div class="opts">';
+  n.opts.forEach((o,i)=>h+='<button class="opt" data-i="'+i+'">'+o.label+(o.tag?'<span class="tag">'+o.tag+'</span>':'')+'</button>');
+  h+='</div></div>';
+  if(history.length)h+='<button class="restart" id="back">‹ Back</button>';
+  t.innerHTML=h;
+  t.querySelectorAll('.opt').forEach(b=>b.addEventListener('click',()=>{
+    const o=n.opts[+b.dataset.i];history.push(id);
+    o.result?showResult(o.result):render(o.next);
+  }));
+  const bk=document.getElementById('back');if(bk)bk.onclick=()=>goBack();
+}
+function goBack(){
+  const prev=history.pop();
+  if(prev&&prev.indexOf('__result_')===0)showResult(prev.slice(9));
+  else render(prev);
+}
+function showResult(rid){
+  const r=results[rid],t=document.getElementById('tool');
+  let h='<div class="result '+r.cls+'"><h3>Recommendation</h3><p class="verdict">'+r.verdict+'</p>';
+  r.body.forEach(p=>h+='<p>'+p+'</p>');
+  h+='<p class="conf">Read: '+r.conf+'</p></div>';
+  if(r.cont)h+='<button class="opt" id="cont" style="margin-top:10px">Continue the weather check ›<span class="tag">Storm is moving away / not toward us</span></button>';
+  h+='<button class="restart" id="restart">↺ Start Over</button> <button class="restart" id="back">‹ Back</button>';
+  t.innerHTML=h;
+  const c=document.getElementById('cont');if(c)c.onclick=()=>{history.push('__result_'+rid);render(r.cont);};
+  document.getElementById('restart').onclick=()=>{history=[];render('start');};
+  document.getElementById('back').onclick=()=>goBack();
+}
+render('start');
+
+/* ---------- Live current-conditions dashboard ---------- */
+const LIVE_STATIONS = [
+  {id:"KLOZ", name:"London-Corbin / Magee"},
+  {id:"KSME", name:"Lake Cumberland Regional, Somerset"},
+  {id:"KBYL", name:"Williamsburg–Whitley County"}
+];
+const API = "https://aviationweather.gov/api/data/metar?ids=KLOZ,KSME,KBYL&format=json";
+
+function catClass(c){
+  c=(c||"").toUpperCase();
+  if(c==="VFR")return"vfr"; if(c==="MVFR")return"mvfr";
+  if(c==="IFR")return"ifr"; if(c==="LIFR")return"lifr"; return"unk";
+}
+function ceilingFromClouds(clouds){
+  if(!Array.isArray(clouds))return null;
+  let c=null;
+  for(const layer of clouds){
+    const cov=(layer.cover||"").toUpperCase();
+    if((cov==="BKN"||cov==="OVC"||cov==="OVX")&&layer.base!=null){
+      if(c===null||layer.base<c)c=layer.base;
+    }
+  }
+  return c;
+}
+function fmtVis(v){
+  if(v==null)return"—";
+  if(typeof v==="string")return v.trim()+" SM";
+  return v+" SM";
+}
+function fmtCeil(ft){ return ft==null?"no ceiling":(ft.toLocaleString()+" ft"); }
+
+function renderStations(data){
+  const wrap=document.getElementById('stations');
+  const byId={};
+  if(Array.isArray(data))data.forEach(d=>{ if(d&&d.icaoId)byId[d.icaoId.toUpperCase()]=d; });
+  let html="";
+  LIVE_STATIONS.forEach(s=>{
+    const d=byId[s.id];
+    if(!d){
+      html+='<div class="st unk"><div class="st-top"><span class="st-name">'+s.name+
+            '<span class="id">'+s.id+'</span></span><span class="cat unk">NO DATA</span></div>'+
+            '<div class="st-cvw">No current report returned.</div></div>';
+      return;
+    }
+    const cc=catClass(d.fltCat);
+    const ceil=ceilingFromClouds(d.clouds);
+    const wx=(d.wxString||"").toUpperCase();
+    const stormFlag=/TS|LTG/.test(wx);
+    html+='<div class="st '+cc+'">'+
+      '<div class="st-top"><span class="st-name">'+s.name+'<span class="id">'+s.id+'</span></span>'+
+      '<span class="cat '+cc+'">'+((d.fltCat||"?").toUpperCase())+'</span></div>'+
+      '<div class="st-cvw">Ceiling '+fmtCeil(ceil)+' · Vis '+fmtVis(d.visib)+
+      (wx?' · '+wx:'')+(stormFlag?' <span class="flag">\u26a0 convection</span>':'')+'</div>'+
+      '<div class="st-raw">'+(d.rawOb||"")+'</div></div>';
+  });
+  wrap.innerHTML=html;
+}
+
+function showLiveFallback(){
+  document.getElementById('stations').innerHTML=
+    '<div class="live-fallback">Couldn\u2019t load live data automatically (no connection, or the browser blocked the request when opening this file directly). '+
+    'Tap to open the live page instead: '+
+    '<a href="https://aviationweather.gov/data/metar/?ids=KLOZ,KSME,KBYL&hours=0&taf=true&decoded=true" target="_blank" rel="noopener">KLOZ + KSME + KBYL (decoded) \u2192</a></div>';
+  document.getElementById('liveUpd').textContent="Live fetch unavailable";
+}
+
+function loadLive(){
+  const upd=document.getElementById('liveUpd');
+  document.getElementById('stations').innerHTML='<div class="st-loading">Fetching current observations…</div>';
+  upd.textContent="Loading…";
+  fetch(API,{cache:"no-store"})
+    .then(r=>{ if(!r.ok)throw new Error("HTTP "+r.status); return r.json(); })
+    .then(data=>{
+      renderStations(data);
+      const now=new Date();
+      upd.textContent="Updated "+now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+" — tap Refresh to update";
+    })
+    .catch(()=>showLiveFallback());
+}
+document.getElementById('liveRefresh').onclick=loadLive;
+loadLive();
+</script>
+</body>
+</html>
